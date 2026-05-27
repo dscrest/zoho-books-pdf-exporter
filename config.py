@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
 
-ACCOUNTS_FILE = Path("accounts.json")
-TOKENS_DIR    = Path("tokens")
+ACCOUNTS_FILE    = Path("accounts.json")
+TOKENS_DIR       = Path("tokens")
+LASTUSED_FILE    = Path(".lastused.json")
+KEYRING_SERVICE  = "zoho-books-exporter"
 
 DEFAULT_AUTH_BASE = "https://accounts.zoho.com/oauth/v2"
 DEFAULT_API_BASE  = "https://www.zohoapis.com/books/v3"

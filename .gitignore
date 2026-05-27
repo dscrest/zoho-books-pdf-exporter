@@ -2,6 +2,7 @@
 accounts.json
 zoho_tokens.json
 tokens/
+.lastused.json
 
 # Downloaded PDFs
 SalesOrders/

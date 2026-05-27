@@ -3,7 +3,6 @@
     "name": "Account Name",
     "client_id": "1000.XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
     "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "token_file": "tokens/account_name.json",
     "scope": "ZohoBooks.fullaccess.all",
     "auth_base": "https://accounts.zoho.com/oauth/v2"
   },
@@ -11,7 +10,6 @@
     "name": "Live Account (restricted)",
     "client_id": "1000.XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
     "client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "token_file": "tokens/live.json",
     "scope": "ZohoBooks.deliverychallans.READ,ZohoBooks.transferorders.READ",
     "auth_base": "https://accounts.zoho.in/oauth/v2",
     "org_id": "YOUR_ORG_ID",

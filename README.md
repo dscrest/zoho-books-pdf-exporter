@@ -7,12 +7,13 @@ A modular Python CLI to bulk-download **Sales Orders**, **Delivery Challans**, a
 ## Features
 
 - Multi-account support (`.com` and `.in` data centres)
-- Interactive pickers for account, organisation, and document type
+- Interactive pickers for account, organisation, and document type — with last-used defaults
 - Incremental — skips already-downloaded files on repeat runs
 - Per-account scope restriction (e.g. read-only DC + TO for live accounts)
 - Automatic OAuth token refresh
 - Configurable rate limiting to stay within Zoho API limits
 - Date range filtering
+- **Secure token storage** — tokens and client secrets stored in the OS keychain (macOS Keychain, Windows Credential Manager, Linux SecretService)
 
 ---
 
@@ -20,16 +21,15 @@ A modular Python CLI to bulk-download **Sales Orders**, **Delivery Challans**, a
 
 ```
 so-downloader-zb/
-├── config.py          # Constants, active-account state
-├── auth.py            # OAuth token management, account picker
-├── api.py             # HTTP layer, Zoho Books API calls
-├── downloader.py      # PDF / attachment save logic
-├── main.py            # CLI entry point, interactive menus
-├── accounts.json      # Your credentials (git-ignored)
+├── config.py              # Constants, active-account state
+├── auth.py                # OAuth token management, keychain storage, account picker
+├── api.py                 # HTTP layer, Zoho Books API calls
+├── downloader.py          # PDF / attachment save logic
+├── main.py                # CLI entry point, interactive menus
+├── requirements.txt       # keyring dependency
+├── accounts.json          # Your credentials (git-ignored)
 ├── accounts.example.json  # Template — copy to accounts.json
-└── tokens/            # Saved OAuth tokens (git-ignored)
-    ├── octfis.json
-    └── praveg.json
+└── so-downloader.py       # Original monolith (reference only)
 ```
 
 ### Module responsibilities
@@ -37,8 +37,8 @@ so-downloader-zb/
 | File | Responsibility |
 |---|---|
 | `config.py` | Directory paths, default endpoints, active-account context (module-level state shared across all modules) |
-| `auth.py` | Load/save tokens, exchange auth codes, refresh access tokens, in-memory token cache, account picker UI |
-| `api.py` | Single `api_get()` function used everywhere, paginated document listing, organisation picker, in-memory API base cache |
+| `auth.py` | Load/save tokens via OS keychain, exchange auth codes, refresh access tokens, in-memory token cache, account picker UI, one-time migration from plain token files |
+| `api.py` | Single `api_get()` function used everywhere, paginated document listing, organisation picker with last-used defaults |
 | `downloader.py` | `download_pdf()` and `download_attachment()` — both generic, work for any document type |
 | `main.py` | Argument parsing, account → org → module picker flow, `run_download()` loop |
 
@@ -67,36 +67,45 @@ python3 main.py
 ### Token lifecycle
 
 ```
-accounts.json ──► auth.py (load_tokens)
+accounts.json ──► auth.py (first run: migrate to keychain)
+                     │
+                     ├── OS keychain (macOS / Windows / Linux)
+                     │   tokens stored securely, never in plain files
                      │
                      ├── in-memory cache (_token_cache)
-                     │   avoids disk reads on every API call
+                     │   avoids keychain reads on every API call
                      │
                      └── auto-refresh when expires_at reached
                              │
                              ▼
-                         save_tokens() ── updates cache + disk
+                         save_tokens() ── updates keychain + cache
 ```
 
 ---
 
 ## Setup
 
-### 1. Install (no dependencies — stdlib only)
+### 1. Install dependencies
 
 ```bash
 git clone https://github.com/dscrest/zoho-books-pdf-exporter.git
 cd zoho-books-pdf-exporter
-cp accounts.example.json accounts.json
+pip install -r requirements.txt
 ```
 
 ### 2. Create a Self Client in Zoho API Console
 
 1. Go to [https://api-console.zoho.com](https://api-console.zoho.com) (or `zoho.in` for India accounts)
 2. Create a **Self Client** app
-3. Copy the **Client ID** and **Client Secret** into `accounts.json`
+3. Copy the **Client ID** and **Client Secret**
 
 ### 3. Configure accounts.json
+
+```bash
+cp accounts.example.json accounts.json
+```
+
+Then fill in your credentials:
 
 ```json
 [
@@ -104,12 +113,13 @@ cp accounts.example.json accounts.json
     "name": "My Company",
     "client_id": "1000.XXXX",
     "client_secret": "XXXX",
-    "token_file": "tokens/mycompany.json",
     "scope": "ZohoBooks.fullaccess.all",
     "auth_base": "https://accounts.zoho.com/oauth/v2"
   }
 ]
 ```
+
+> **Security note:** `client_secret` in `accounts.json` is only needed for the first run — it is automatically migrated to the OS keychain and removed from the file.
 
 **All account fields:**
 
@@ -117,8 +127,7 @@ cp accounts.example.json accounts.json
 |---|---|---|
 | `name` | Yes | Display name shown in picker |
 | `client_id` | Yes | From Zoho API Console |
-| `client_secret` | Yes | From Zoho API Console |
-| `token_file` | Yes | Where to store tokens (relative path) |
+| `client_secret` | First run only | Migrated to keychain automatically |
 | `scope` | Yes | OAuth scope — see below |
 | `auth_base` | No | `zoho.com` (default) or `zoho.in` |
 | `org_id` | No | Skip org picker — use this org directly |
@@ -140,7 +149,7 @@ cp accounts.example.json accounts.json
 python3 auth.py
 ```
 
-Follow the steps — generates a code in Zoho API Console, paste it when prompted. Tokens are saved to `tokens/`.
+Follow the steps — generates a code in Zoho API Console, paste it when prompted. Tokens are stored securely in the OS keychain.
 
 ---
 
@@ -217,8 +226,10 @@ python3 auth.py   # select the account to re-authenticate
 
 ---
 
-## Security notes
+## Security
 
-- `accounts.json` and `tokens/` are in `.gitignore` — never committed
+- `accounts.json` is in `.gitignore` — never committed
+- `client_secret` is stored in the OS keychain, not in any file
+- Tokens are stored in the OS keychain, not in plain JSON files
 - Use restricted scopes (`READ` only) for live/production accounts
-- Tokens are stored locally in `tokens/` — keep this directory private
+- Keychain integration via the `keyring` library (macOS Keychain / Windows Credential Manager / Linux SecretService)

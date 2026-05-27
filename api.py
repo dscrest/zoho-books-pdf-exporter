@@ -57,31 +57,48 @@ def select_organization(preselected_id: str = None) -> tuple[str, str]:
 
     If preselected_id is given (via --org flag or accounts.json), skip the prompt.
     """
+    from auth import load_last_used, save_last_used
     from config import get_active_account
     account = get_active_account()
 
     # Account-level org_id takes priority (avoids needing org scope)
     org_id = preselected_id or account.get("org_id")
     if org_id:
-        print(f"Organization : {account.get('org_name', org_id)} ({org_id})")
-        return org_id, account.get("org_name", org_id)
+        org_name = account.get("org_name", org_id)
+        print(f"Organization : {org_name} ({org_id})")
+        return org_id, org_name
 
     data = api_get("organizations")
     orgs = data.get("organizations", [])
     if not orgs:
         raise RuntimeError("No organizations found.")
 
+    last_org_id = load_last_used().get(f"org_{account['name']}")
+    default_idx = next((i + 1 for i, o in enumerate(orgs) if o["organization_id"] == last_org_id), None)
+    last_org_name = next((o["name"] for o in orgs if o["organization_id"] == last_org_id), None)
+
     print("\n┌─ Select Organization " + "─" * 35)
     for i, o in enumerate(orgs):
-        print(f"│  [{i + 1}] {o['name']:<30} (ID: {o['organization_id']})")
+        tag = "  ← last used" if o["organization_id"] == last_org_id else ""
+        print(f"│  [{i + 1}] {o['name']:<30} (ID: {o['organization_id']}){tag}")
     print("└" + "─" * 57)
 
+    prompt = f"Enter number [1–{len(orgs)}]"
+    if default_idx:
+        prompt += f", or Enter for [{last_org_name}]"
+
     while True:
-        raw = input(f"Enter number [1–{len(orgs)}]: ").strip()
+        raw = input(f"{prompt}: ").strip()
+        if not raw and default_idx:
+            chosen = orgs[default_idx - 1]
+            break
         if raw.isdigit() and 1 <= int(raw) <= len(orgs):
             chosen = orgs[int(raw) - 1]
-            return chosen["organization_id"], chosen["name"]
+            break
         print(f"  Please enter a number between 1 and {len(orgs)}.")
+
+    save_last_used({f"org_{account['name']}": chosen["organization_id"]})
+    return chosen["organization_id"], chosen["name"]
 
 
 # ── Generic paginated list ────────────────────────────────────────────────────
