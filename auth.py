@@ -169,9 +169,11 @@ def get_access_token() -> str:
             "Run:  python3 auth.py  to authenticate."
         )
     # Warn if the token was issued for a different scope
+    # Normalise: Zoho returns scopes space-separated; accounts.json uses commas
+    def _scope_set(s): return set(s.replace(",", " ").split())
     token_scope   = tokens.get("scope", "")
     account_scope = account.get("scope", "")
-    if token_scope and account_scope and token_scope != account_scope:
+    if token_scope and account_scope and _scope_set(token_scope) != _scope_set(account_scope):
         sys.exit(
             f"Scope mismatch for '{account['name']}'.\n"
             f"  Token scope  : {token_scope}\n"
