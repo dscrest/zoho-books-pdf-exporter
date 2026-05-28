@@ -9,9 +9,10 @@ KEYRING_SERVICE  = "zoho-books-exporter"
 DEFAULT_AUTH_BASE = "https://accounts.zoho.com/oauth/v2"
 DEFAULT_API_BASE  = "https://www.zohoapis.com/books/v3"
 
-DIR_SALES_ORDERS      = Path("SalesOrders")
-DIR_DELIVERY_CHALLANS = Path("DeliveryChallans")
-DIR_TRANSFER_ORDERS   = Path("TransferOrders")
+DIR_SALES_ORDERS           = Path("SalesOrders")
+DIR_DELIVERY_CHALLANS      = Path("DeliveryChallans")
+DIR_TRANSFER_ORDERS        = Path("TransferOrders")
+DIR_INVENTORY_ADJUSTMENTS  = Path("InventoryAdjustments")
 
 _active_account: dict = None
 

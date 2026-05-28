@@ -137,3 +137,9 @@ def list_delivery_challans(org_id: str, date_from: str = None, date_to: str = No
 
 def list_transfer_orders(org_id: str, date_from: str = None, date_to: str = None) -> list:
     return _list_documents("transferorders", "transfer_orders", org_id, date_from, date_to)
+
+
+# ── Inventory Adjustments ─────────────────────────────────────────────────────
+
+def list_inventory_adjustments(org_id: str, date_from: str = None, date_to: str = None) -> list:
+    return _list_documents("inventoryadjustments", "inventory_adjustments", org_id, date_from, date_to)

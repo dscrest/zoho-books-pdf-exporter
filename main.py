@@ -32,6 +32,7 @@ from pathlib import Path
 
 from api import (
     list_delivery_challans,
+    list_inventory_adjustments,
     list_sales_orders,
     list_transfer_orders,
     select_organization,
@@ -39,6 +40,7 @@ from api import (
 from auth import select_account
 from config import (
     DIR_DELIVERY_CHALLANS,
+    DIR_INVENTORY_ADJUSTMENTS,
     DIR_SALES_ORDERS,
     DIR_TRANSFER_ORDERS,
 )
@@ -68,9 +70,21 @@ DOC_TYPES = {
         "transfer_order_number",
         DIR_TRANSFER_ORDERS,
     ),
+    "ia": (
+        list_inventory_adjustments,
+        "inventoryadjustments",
+        "inventory_adjustment_id",
+        "adjustment_number",
+        DIR_INVENTORY_ADJUSTMENTS,
+    ),
 }
 
-TYPE_LABELS = {"so": "Sales Orders", "dc": "Delivery Challans", "to": "Transfer Orders"}
+TYPE_LABELS = {
+    "so": "Sales Orders",
+    "dc": "Delivery Challans",
+    "to": "Transfer Orders",
+    "ia": "Inventory Adjustments",
+}
 
 
 def select_module(allowed: list) -> str:
@@ -138,7 +152,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--type", dest="doc_type",
-        choices=["so", "dc", "to", "all"],
+        choices=["so", "dc", "to", "ia", "all"],
         default=None,
         help="Skip module picker: so=Sales Orders, dc=Delivery Challans, to=Transfer Orders, all=all",
     )
