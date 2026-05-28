@@ -61,14 +61,15 @@ def store_client_secret(secret: str) -> None:
 def _migrate_if_needed() -> None:
     account = get_active_account()
 
-    # Migrate token file → keyring
+    # Migrate token file → keyring (only if keychain is empty — never overwrite)
     token_file = Path(account.get("token_file", ""))
     if token_file.exists():
         try:
-            tokens = json.loads(token_file.read_text())
-            _keyring_save_tokens(tokens)
+            if not _keyring_load_tokens():
+                tokens = json.loads(token_file.read_text())
+                _keyring_save_tokens(tokens)
+                print(f"  Migrated tokens for '{account['name']}' → keychain")
             token_file.unlink()
-            print(f"  Migrated tokens for '{account['name']}' → keychain")
         except Exception as e:
             print(f"  Warning: could not migrate token file: {e}")
 
@@ -137,6 +138,7 @@ def exchange_code(code: str) -> dict:
     if "error" in data:
         raise RuntimeError(f"Token exchange failed: {data}")
     data["expires_at"] = time.time() + data.get("expires_in", 3600) - 60
+    data["scope"]      = account.get("scope", "")
     save_tokens(data)
     print(f"Tokens saved to keychain for '{account['name']}'")
     return data
@@ -159,11 +161,22 @@ def refresh_access_token(tokens: dict) -> dict:
 
 
 def get_access_token() -> str:
-    tokens = load_tokens()
+    account = get_active_account()
+    tokens  = load_tokens()
     if not tokens:
         sys.exit(
-            f"No tokens for '{get_active_account()['name']}'.\n"
+            f"No tokens for '{account['name']}'.\n"
             "Run:  python3 auth.py  to authenticate."
+        )
+    # Warn if the token was issued for a different scope
+    token_scope   = tokens.get("scope", "")
+    account_scope = account.get("scope", "")
+    if token_scope and account_scope and token_scope != account_scope:
+        sys.exit(
+            f"Scope mismatch for '{account['name']}'.\n"
+            f"  Token scope  : {token_scope}\n"
+            f"  Account scope: {account_scope}\n"
+            "Run:  python3 auth.py  to re-authenticate with the updated scope."
         )
     if time.time() >= tokens.get("expires_at", 0):
         tokens = refresh_access_token(tokens)
