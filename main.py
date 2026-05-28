@@ -27,6 +27,7 @@ Skip org picker (useful in scripts):
 """
 
 import argparse
+import sys
 from pathlib import Path
 
 from api import (
